@@ -1,208 +1,310 @@
-﻿# 🛍️ Ecommerce AI Assistant
+﻿# 🛍️ Agentic E-Commerce Assistant
 
-An intelligent ecommerce chatbot that combines **RAG (Retrieval-Augmented Generation)** with **Agentic AI tool calling** — powered by Groq LLaMA 3.3 70B, Qdrant, and Supabase.
-
-Ask about products from a PDF catalog, check live stock levels, and place orders — all through a clean Streamlit chat interface.
-
----
+An AI-powered e-commerce chatbot combining **Retrieval-Augmented Generation (RAG)** with **Agentic AI tool calling**. The system answers product questions from a PDF catalog, checks live inventory, and executes purchase operations through Supabase.
 
 ## ✨ Features
 
-- 📚 **Product Q&A** — answers questions from a PDF product catalog using semantic search
-- 📦 **Stock Checking** — queries live inventory from Supabase in real time
-- 🛒 **Purchase Flow** — buys products by decrementing stock in the database
-- 🧠 **Smart Routing** — automatically detects intent and routes to the right pipeline
-- 💬 **Chat UI** — dark-themed Streamlit interface with chat history and intent badges
-
----
+- 🔎 Product Q&A using semantic retrieval
+- 🧠 RAG pipeline with Qdrant vector search
+- 🤖 Agentic AI with tool calling
+- 📦 Real-time stock checking with Supabase
+- 🛒 Purchase operation with inventory updates
+- 💬 Streamlit conversational interface
+- ⚡ Groq LLM using `openai/gpt-oss-120b`
+- 🔐 `.env`-based secret management
 
 ## 🏗️ Architecture
 
-```
-User Input
-    │
-    ▼
-Intent Detection (regex)
-    │
-    ├── "buy" / "stock"  ──→  Tool-Calling Agent  ──→  Supabase (PostgreSQL)
-    │
-    └── everything else  ──→  RAG Pipeline        ──→  Qdrant (Vector DB)
-                                                            │
-                                                     PDF Product Catalog
+```text
+                         User
+                          │
+                          ▼
+                  ┌─────────────────┐
+                  │  Streamlit UI   │
+                  └────────┬────────┘
+                           │
+                           ▼
+                  ┌─────────────────┐
+                  │ Agent / Router  │
+                  └───────┬─┬───────┘
+                          │ │
+             Product Q&A  │ │  Stock / Purchase
+                          │ │
+                          ▼ ▼
+                    ┌───────────┐
+                    │  Tools    │
+                    └─────┬─────┘
+                          │
+                    ┌─────┴─────┐
+                    │           │
+                    ▼           ▼
+               check_stock  buy_product
+                    │           │
+                    └─────┬─────┘
+                          ▼
+                      Supabase
+
+Product Questions
+       │
+       ▼
+   Retriever
+       │
+       ▼
+     Qdrant
+       │
+       ▼
+ Retrieved Context
+       │
+       ▼
+     Groq LLM
+       │
+       ▼
+    Response
 ```
 
----
+## 🧠 RAG Pipeline
+
+```text
+Product PDF
+    ↓
+Document Loader
+    ↓
+Text Splitting
+    ↓
+Hugging Face Embeddings
+    ↓
+Qdrant Vector Database
+    ↓
+Semantic Retrieval
+    ↓
+Retrieved Context + User Query
+    ↓
+Groq LLM
+    ↓
+Final Answer
+```
+
+## 🤖 Agentic Workflow
+
+For requests requiring live information or actions, the agent uses database tools.
+
+### Stock Check
+
+```text
+User → Agent → check_stock(product_id) → Supabase → Current Stock → Response
+```
+
+### Purchase
+
+```text
+User → Agent → check_stock() → buy_product() → Supabase
+                                      ↓
+                              Inventory Updated
+```
+
+## 🛠️ Tech Stack
+
+| Category | Technology |
+|---|---|
+| Language | Python |
+| LLM | Groq — `openai/gpt-oss-120b` |
+| Framework | LangChain |
+| GenAI | RAG, Agentic AI, Tool Calling |
+| Embeddings | Hugging Face Sentence Transformers |
+| Vector Database | Qdrant |
+| Database | Supabase |
+| Frontend | Streamlit |
+| Infrastructure | Docker |
+| Version Control | Git / GitHub |
 
 ## 📁 Project Structure
 
-```
+```text
+Agentic-E-Commerce-Assistant/
+│
 ├── Backend/
-│   ├── Rag/
-│   │   ├── ecommerce_products_rag.pdf          # Product catalog (source of truth)
-│   │   ├── document_loader_text_splitter_01.py # Load & chunk the PDF
-│   │   ├── vector_store_02.py                  # Embed chunks → store in Qdrant
-│   │   ├── retriver_03.py                      # Similarity search from Qdrant
-│   │   ├── rag_chain_04.py                     # RAG chain with Groq LLM
-│   │   ├── main_05.py                          # Unified entry point (RAG + Agent)
-│   │   └── .env                                # GROQ_API_KEY
+│   ├── Agent/
+│   │   ├── db/
+│   │   ├── tools/
+│   │   ├── agent.py
+│   │   └── main.py
 │   │
-│   └── Agent/
-│       ├── agent.py                            # Full LangChain AgentExecutor
-│       ├── main.py                             # Entry point for agent version
-│       ├── tools/
-│       │   └── database_tools.py               # check_stock & buy_product tools
-│       └── db/
-│           ├── connection.py                   # Supabase client
-│           ├── seed.py                         # One-time DB seeder (50 products)
-│           └── .env                            # SUPABASE_URL & SUPABASE_KEY
+│   └── Rag/
+│       ├── document_loader_text_splitter_01.py
+│       ├── vector_store_02.py
+│       ├── retriver_03.py
+│       ├── rag_chain_04.py
+│       ├── main_05.py
+│       └── ecommerce_products_rag.pdf
 │
 ├── Frontend/
-│   └── app.py                                  # Streamlit chat UI
+│   └── app.py
 │
-├── qdrant_storage/                             # Local Qdrant data (auto-generated)
 ├── requirements.txt
 ├── .gitignore
 └── README.md
 ```
 
----
+## ⚙️ Local Setup
 
-## 🛠️ Tech Stack
-
-| Layer | Technology |
-|---|---|
-| LLM | [Groq](https://console.groq.com) — LLaMA 3.3 70B Versatile |
-| Embeddings | HuggingFace `sentence-transformers/all-MiniLM-L6-v2` (local) |
-| Vector DB | [Qdrant](https://qdrant.tech) (local via Docker) |
-| Relational DB | [Supabase](https://supabase.com) (PostgreSQL) |
-| Framework | [LangChain](https://langchain.com) |
-| Frontend | [Streamlit](https://streamlit.io) |
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Python 3.10+
-- [Docker](https://www.docker.com/) (for Qdrant)
-- A free [Groq](https://console.groq.com) account
-- A free [Supabase](https://supabase.com) project
-
----
-
-### 1. Clone the repository
+### 1. Clone
 
 ```bash
-git clone https://github.com/Pukar77/Ecommerce-Agent.git
-cd Ecommerce-Agent
+git clone https://github.com/rahulj2122005/Agentic-E-Commerce-Assistant.git
+cd Agentic-E-Commerce-Assistant
 ```
 
-### 2. Install dependencies
+### 2. Create virtual environment
 
-```bash
+```powershell
+py -3.13 -m venv venv
+.env\Scripts\Activate.ps1
+```
+
+### 3. Install dependencies
+
+```powershell
 pip install -r requirements.txt
 ```
 
-### 3. Configure environment variables
+## 🔐 Environment Variables
 
-Create `Backend/Rag/.env`:
+### `Backend/Rag/.env`
+
 ```env
-GROQ_API_KEY=your_groq_api_key_here
+GROQ_API_KEY=your_groq_api_key
 ```
 
-Create `Backend/Agent/db/.env`:
+### `Backend/Agent/db/.env`
+
 ```env
 SUPABASE_URL=your_supabase_project_url
-SUPABASE_KEY=your_supabase_anon_key
+SUPABASE_KEY=your_supabase_key
 ```
 
-### 4. Set up the Supabase table
+**Never commit API keys or `.env` files to GitHub.**
 
-In your Supabase project → **SQL Editor**, run:
+## 🗄️ Supabase Setup
+
+Create the products table:
 
 ```sql
 CREATE TABLE products (
-    id         SERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     product_id INT UNIQUE NOT NULL,
-    name       TEXT NOT NULL,
-    stock      INT NOT NULL DEFAULT 2
+    name TEXT NOT NULL,
+    stock INT NOT NULL DEFAULT 2
 );
 ```
 
-### 5. Seed the database
+Seed the demo products:
 
-```bash
+```powershell
 python Backend/Agent/db/seed.py
 ```
 
-This inserts 50 products (`Smart Item 1` → `Smart Item 50`), each with `stock = 2`.
+## 🔎 Qdrant Setup
 
-### 6. Start Qdrant (local vector database)
+Start Qdrant with Docker:
 
-```bash
+```powershell
 docker run -p 6333:6333 -v ${PWD}/qdrant_storage:/qdrant/storage qdrant/qdrant
 ```
 
-Leave this terminal running.
+Qdrant runs locally on port `6333`.
 
-### 7. Run the Streamlit app
+## 📚 Test RAG
 
-```bash
+With Qdrant running, open another terminal:
+
+```powershell
+.env\Scripts\Activate.ps1
+python Backend/Rag/main_05.py
+```
+
+The first run loads the PDF, creates chunks, generates embeddings, and stores vectors in Qdrant.
+
+## 🖥️ Run Streamlit
+
+```powershell
 streamlit run Frontend/app.py
 ```
 
-Open [http://localhost:8501](http://localhost:8501) in your browser.
+Then open the local URL shown by Streamlit, normally:
 
-> **First launch:** The app will automatically load the PDF, chunk it, embed it, and store it in Qdrant. This takes ~1–2 minutes and only happens once.
-
----
+```text
+http://localhost:8501
+```
 
 ## 💬 Example Queries
 
-| Query | Route | Action |
-|---|---|---|
-| `"What is Product 5?"` | RAG | Searches Qdrant, answers from PDF |
-| `"Tell me the price of Product 12"` | RAG | Retrieves product details |
-| `"Is Product 7 in stock?"` | Agent → check_stock | Queries Supabase |
-| `"How many units of Product 3 are left?"` | Agent → check_stock | Queries Supabase |
-| `"Buy Product 8"` | Agent → buy_product | Decrements stock in Supabase |
-| `"I want to purchase Product 22"` | Agent → buy_product | Decrements stock in Supabase |
-
----
-
-## 🔄 How the RAG Pipeline Works
-
-```
-PDF Catalog
-    │
-    ▼  document_loader_text_splitter_01.py
-Chunks (1000 chars, 200 overlap)
-    │
-    ▼  vector_store_02.py
-Embeddings → Qdrant Collection
-    │
-    ▼  retriver_03.py
-Similarity Search (top-k chunks)
-    │
-    ▼  rag_chain_04.py
-Groq LLM → Final Answer
+```text
+What is Product 5?
 ```
 
-**Smart product number matching:** When a specific product number is mentioned (e.g. "Product 7"), the retriever fetches 30 candidates and filters to only chunks containing the exact `"Product 7:"` marker — preventing false matches from similarly numbered products.
+```text
+What is the stock of Product 5?
+```
 
----
+```text
+I want to buy Product 5
+```
 
-## ⚙️ Two Entry Points
+```text
+Tell me about Product 5
+```
 
-| File | Approach |
-|---|---|
-| `Backend/Rag/main_05.py` | Manual regex-based intent routing (CLI) |
-| `Backend/Agent/main.py` | Full LangChain AgentExecutor — LLM decides which tool to call (CLI) |
-| `Frontend/app.py` | Streamlit UI — uses the `main_05.py` routing logic |
+## 🧪 Tested Workflow
 
----
+- ✅ PDF loading
+- ✅ Text chunking
+- ✅ Hugging Face embeddings
+- ✅ Qdrant vector insertion
+- ✅ Semantic retrieval
+- ✅ Groq LLM generation
+- ✅ Product information queries
+- ✅ Agent tool calling
+- ✅ Supabase stock retrieval
+- ✅ Purchase execution
+- ✅ Inventory update
+- ✅ Streamlit chatbot
 
-## 📄 License
+## 🎯 Key Learning Outcomes
 
-Rimal License — feel free to use, modify, and distribute.
+- Retrieval-Augmented Generation (RAG)
+- Embeddings and semantic search
+- Vector databases
+- LLM integration
+- Agentic AI
+- Tool/function calling
+- Database-backed AI actions
+- Conversational AI
+- Streamlit development
+- Docker
+- Environment and secret management
+
+## 🚀 Future Improvements
+
+- Persistent multi-turn product context
+- Product recommendations
+- User authentication
+- Order history
+- Payment integration
+- Product filtering and ranking
+- Production deployment
+- Stronger database security and RLS policies
+- Retrieval and response evaluation
+
+## 📌 Attribution
+
+This project was developed using the open-source [Ecommerce-Agent](https://github.com/Pukar77/Ecommerce-Agent) repository as a reference/base.
+
+The project was configured, tested, and extended in my development environment with the RAG, Groq, Qdrant, Supabase, Agent tool-calling, and Streamlit workflow documented above.
+
+## 👤 Author
+
+**Rahul Jadhav**
+
+GitHub: https://github.com/rahulj2122005
+
+Repository: https://github.com/rahulj2122005/Agentic-E-Commerce-Assistant
